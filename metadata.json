@@ -1,0 +1,6 @@
+{
+  "name": "PANGAN-SENSE",
+  "description": "Sistem irigasi presisi berbasis IoT ESP32, Bluetooth BLE, Edge/Local AI, dan integrasi cuaca BMKG untuk pertanian cerdas.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
