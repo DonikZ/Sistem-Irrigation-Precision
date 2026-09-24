@@ -16,7 +16,8 @@ import {
   Clock,
   Layers,
   Settings2,
-  Plus
+  Plus,
+  Wind
 } from 'lucide-react';
 import { useApp } from '../context/AppContext.jsx';
 import SensorCard from '../components/SensorCard.jsx';
