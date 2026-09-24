@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">System Irrigation</string>
+    <string name="title_activity_main">System Irrigation</string>
+    <string name="package_name">com.sistemirigasi.app</string>
+    <string name="custom_url_scheme">com.sistemirigasi.app</string>
+</resources>
