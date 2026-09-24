@@ -28,12 +28,25 @@ export default function MonitoringPage() {
     bluetoothStatus,
     settings,
     currentPlant,
+    weather,
+    weatherLoading,
+    fetchWeather,
     simulateSensorChange,
     addNotification
   } = useApp();
 
   const [selectedRange, setSelectedRange] = useState('1h');
   const [showSimulator, setShowSimulator] = useState(false);
+
+  // BMKG Weather integration for Air Temperature and Rainfall
+  const bmkgAirTemp = weather?.current?.temperature !== undefined
+    ? Number(weather.current.temperature)
+    : (sensorData.airTemperature || 25.0);
+  const bmkgRainfall = weather?.current?.rainfall !== undefined
+    ? Number(weather.current.rainfall)
+    : (sensorData.rainfall || 0.0);
+  const bmkgLocationName = weather?.location || settings.bmkgLocationName || 'Stasiun Agroklimat BMKG';
+  const bmkgWeatherDesc = weather?.current?.weatherDesc || 'Berawan';
 
   const formattedLastUpdate = sensorData.timestamp
     ? new Date(sensorData.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -124,7 +137,7 @@ export default function MonitoringPage() {
                 ⚠️ Tandon Kritis (Fail-Safe)
               </button>
               <button
-                onClick={() => handleApplyPreset('Kondisi Optimal', { soilMoisture: 55, soilTemperature: 26, airTemperature: 28, airHumidity: 65, rainfall: 0, waterLevel: 80 })}
+                onClick={() => handleApplyPreset('Kondisi Optimal', { soilMoisture: 55, airTemperature: 28, airHumidity: 65, rainfall: 0, waterLevel: 80 })}
                 className="px-2.5 py-1 rounded bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] text-[11px] font-mono hover:bg-[#22C55E]/25 cursor-pointer"
               >
                 🌱 Optimal
@@ -177,25 +190,25 @@ export default function MonitoringPage() {
               </div>
             </div>
 
-            {/* Slider 3: Air Temperature */}
+            {/* Slider 3: Air Temperature (BMKG Sync) */}
             <div className="bg-[#1B1F21] p-3 rounded-lg border border-[#282E33]">
               <div className="flex justify-between mb-1.5">
-                <span className="text-[#8A9198]">Suhu Udara Ambien:</span>
-                <span className="font-bold text-[#F5F5F5]">{sensorData.airTemperature}°C</span>
+                <span className="text-[#8A9198]">Suhu Udara (BMKG Live):</span>
+                <span className="font-bold text-[#F59E0B]">{bmkgAirTemp}°C</span>
               </div>
               <input
                 type="range"
                 min="0"
                 max="45"
                 step="0.5"
-                value={sensorData.airTemperature}
+                value={bmkgAirTemp}
                 onChange={(e) => simulateSensorChange({ airTemperature: Number(e.target.value) })}
                 className="w-full accent-[#FF9A3D] cursor-pointer"
               />
               <div className="flex justify-between text-[10px] text-[#5A626A] mt-1">
                 <span>0°C (Standby)</span>
-                <span>30°C</span>
-                <span>45°C (Ekstrem Panas)</span>
+                <span>BMKG: {bmkgAirTemp}°C</span>
+                <span>45°C (Ekstrem)</span>
               </div>
             </div>
 
@@ -221,58 +234,86 @@ export default function MonitoringPage() {
               </div>
             </div>
 
-            {/* Slider 5: Rainfall */}
+            {/* Slider 5: Rainfall (BMKG Sync) */}
             <div className="bg-[#1B1F21] p-3 rounded-lg border border-[#282E33]">
               <div className="flex justify-between mb-1.5">
-                <span className="text-[#8A9198]">Curah Hujan Lokal:</span>
-                <span className="font-bold text-[#38BDF8]">{sensorData.rainfall} mm/jam</span>
+                <span className="text-[#8A9198]">Curah Hujan (BMKG Live):</span>
+                <span className="font-bold text-[#38BDF8]">{bmkgRainfall} mm</span>
               </div>
               <input
                 type="range"
                 min="0"
                 max="60"
                 step="1"
-                value={sensorData.rainfall}
+                value={bmkgRainfall}
                 onChange={(e) => simulateSensorChange({ rainfall: Number(e.target.value) })}
                 className="w-full accent-[#38BDF8] cursor-pointer"
               />
               <div className="flex justify-between text-[10px] text-[#5A626A] mt-1">
                 <span>0 mm (Cerah)</span>
-                <span>20 mm (Hujan Sedang)</span>
+                <span>BMKG: {bmkgRainfall} mm</span>
                 <span>60 mm (Lebat)</span>
               </div>
             </div>
 
-            {/* Slider 6: Soil Temperature */}
-            <div className="bg-[#1B1F21] p-3 rounded-lg border border-[#282E33]">
-              <div className="flex justify-between mb-1.5">
-                <span className="text-[#8A9198]">Suhu Tanah:</span>
-                <span className="font-bold text-[#FF9A3D]">{sensorData.soilTemperature}°C</span>
+            {/* Reset / Sync Button */}
+            <div className="bg-[#1B1F21] p-3 rounded-lg border border-[#282E33] flex flex-col justify-between">
+              <div className="text-[11px] text-[#8A9198]">
+                Suhu udara & curah hujan disinkronkan langsung dari data satelit / API BMKG.
               </div>
-              <input
-                type="range"
-                min="18"
-                max="40"
-                step="0.5"
-                value={sensorData.soilTemperature}
-                onChange={(e) => simulateSensorChange({ soilTemperature: Number(e.target.value) })}
-                className="w-full accent-[#FF9A3D] cursor-pointer"
-              />
-              <div className="flex justify-between text-[10px] text-[#5A626A] mt-1">
-                <span>18°C</span>
-                <span>28°C</span>
-                <span>40°C</span>
-              </div>
+              <button
+                onClick={() => {
+                  fetchWeather();
+                  addNotification('Data cuaca & suhu udara disinkronkan kembali dari API BMKG.', 'success', 'BMKG Sync');
+                }}
+                disabled={weatherLoading}
+                className="mt-2 w-full py-1.5 px-3 rounded bg-[#38BDF8]/10 hover:bg-[#38BDF8]/20 border border-[#38BDF8]/30 text-[#38BDF8] text-xs font-mono flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3 h-3 ${weatherLoading ? 'animate-spin' : ''}`} />
+                <span>Sinkronkan Ulang BMKG</span>
+              </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* BMKG Weather Integration Status Bar */}
+      <div className="bg-[#141719] border border-[#38BDF8]/25 rounded-xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs font-mono">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-lg bg-[#38BDF8]/10 text-[#38BDF8] border border-[#38BDF8]/20">
+            <CloudRain className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 text-[#F5F5F5] font-bold">
+              <span>Sinkronisasi Data Agroklimat BMKG</span>
+              <span className="text-[10px] font-normal px-2 py-0.5 rounded bg-[#38BDF8]/15 text-[#38BDF8] border border-[#38BDF8]/30">
+                API BMKG Live
+              </span>
+            </div>
+            <div className="text-[11px] text-[#8A9198] mt-0.5">
+              Suhu Udara (<strong className="text-[#F59E0B]">{bmkgAirTemp}°C</strong>) & Curah Hujan (<strong className="text-[#38BDF8]">{bmkgRainfall} mm</strong>) disinkronkan langsung dari {bmkgLocationName} ({bmkgWeatherDesc}).
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={() => {
+            fetchWeather();
+            addNotification('Memperbarui prakiraan cuaca & suhu udara dari API BMKG...', 'info', 'Refresh BMKG');
+          }}
+          disabled={weatherLoading}
+          className="px-3 py-1.5 rounded-lg bg-[#1B1F21] hover:bg-[#22272B] border border-[#282E33] text-[#38BDF8] text-[11px] flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 self-end sm:self-auto"
+          title="Perbarui Data BMKG"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${weatherLoading ? 'animate-spin' : ''}`} />
+          <span>{weatherLoading ? 'Memuat...' : 'Refresh BMKG'}</span>
+        </button>
+      </div>
+
       {/* Connectivity Status Notice */}
       <ConnectionIndicator />
 
-      {/* 7 Sensor Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Sensor Cards Grid (Suhu Tanah dihapus, Suhu Udara & Curah Hujan dari BMKG) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {/* 1. Soil Moisture */}
         <SensorCard
           title="Kelembapan Tanah"
@@ -289,34 +330,34 @@ export default function MonitoringPage() {
           description="Kapasitansi Lapisan Perakaran"
         />
 
-        {/* 2. Soil Temperature */}
-        <SensorCard
-          title="Suhu Tanah"
-          value={sensorData.soilTemperature}
-          unit="°C"
-          icon={Thermometer}
-          status={sensorData.soilTemperature > 33 ? 'warning' : 'optimal'}
-          statusLabel={sensorData.soilTemperature > 33 ? 'Hangat' : 'Sejuk'}
-          min={24.2}
-          avg={27.8}
-          max={32.0}
-          accentColor="#FF9A3D"
-          description="Kedalaman 15 cm"
-        />
-
-        {/* 3. Air Temperature */}
+        {/* 2. Air Temperature (BMKG API) */}
         <SensorCard
           title="Suhu Udara"
-          value={sensorData.airTemperature}
+          value={bmkgAirTemp}
           unit="°C"
           icon={Thermometer}
-          status={sensorData.airTemperature > 32 ? 'warning' : 'optimal'}
-          statusLabel={sensorData.airTemperature > 32 ? 'Tinggi' : 'Normal'}
+          status={bmkgAirTemp > 32 ? 'warning' : 'optimal'}
+          statusLabel={weatherLoading ? 'Sinkronisasi...' : 'API BMKG'}
           min={21.5}
-          avg={28.6}
-          max={33.8}
+          avg={26.4}
+          max={34.0}
           accentColor="#F59E0B"
-          description="Termosensor Ambien"
+          description={`Stasiun: ${bmkgLocationName}`}
+        />
+
+        {/* 3. Rainfall (BMKG API) */}
+        <SensorCard
+          title="Curah Hujan"
+          value={bmkgRainfall}
+          unit="mm"
+          icon={CloudRain}
+          status={bmkgRainfall > 0 ? 'optimal' : 'normal'}
+          statusLabel={weatherLoading ? 'Sinkronisasi...' : bmkgRainfall > 0 ? 'Presipitasi BMKG' : 'Cerah (0 mm)'}
+          min={0.0}
+          avg={1.2}
+          max={25.0}
+          accentColor="#38BDF8"
+          description={`Prakiraan: ${bmkgWeatherDesc}`}
         />
 
         {/* 4. Air Humidity */}
@@ -334,22 +375,7 @@ export default function MonitoringPage() {
           description="Relatif Humidity (RH)"
         />
 
-        {/* 5. Rainfall */}
-        <SensorCard
-          title="Curah Hujan"
-          value={sensorData.rainfall}
-          unit="mm"
-          icon={CloudRain}
-          status={sensorData.rainfall > 0 ? 'optimal' : 'normal'}
-          statusLabel={sensorData.rainfall > 0 ? 'Presipitasi' : 'Nol'}
-          min={0.0}
-          avg={0.2}
-          max={8.4}
-          accentColor="#38BDF8"
-          description="Tipping Bucket Rain Gauge"
-        />
-
-        {/* 6. Light Intensity */}
+        {/* 5. Light Intensity */}
         <SensorCard
           title="Intensitas Cahaya"
           value={sensorData.lightIntensity}
@@ -364,7 +390,7 @@ export default function MonitoringPage() {
           description="Radiasi Matahari / LDR"
         />
 
-        {/* 7. Water Level */}
+        {/* 6. Water Level */}
         <SensorCard
           title="Water Level Tandon"
           value={sensorData.waterLevel}
@@ -379,8 +405,8 @@ export default function MonitoringPage() {
           description="Sensor Kedalaman Hidrostatik"
         />
 
-        {/* 8. Plant Target Info Card */}
-        <div className="bg-[#141719] border border-[#22272B] rounded-xl p-4 flex flex-col justify-between">
+        {/* 7. Plant Target Info Card */}
+        <div className="bg-[#141719] border border-[#22272B] rounded-xl p-4 flex flex-col justify-between sm:col-span-2 lg:col-span-3 xl:col-span-2">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-mono font-bold uppercase text-[#8A9198]">
               Profil Tanaman
@@ -449,25 +475,25 @@ export default function MonitoringPage() {
               </tr>
               <tr>
                 <td className="py-3 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#FF9A3D]" />
-                  Suhu Tanah
+                  <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
+                  Suhu Udara (API BMKG)
                 </td>
-                <td className="py-3 font-bold">{sensorData.soilTemperature}°C</td>
-                <td className="py-3 text-[#8A9198]">24.2°C</td>
-                <td className="py-3">27.8°C</td>
-                <td className="py-3 text-[#8A9198]">32.0°C</td>
-                <td className="py-3 text-[#22C55E]">Sejuk Normal</td>
+                <td className="py-3 font-bold text-[#F59E0B]">{bmkgAirTemp}°C</td>
+                <td className="py-3 text-[#8A9198]">21.5°C</td>
+                <td className="py-3">26.4°C</td>
+                <td className="py-3 text-[#8A9198]">34.0°C</td>
+                <td className="py-3 text-[#38BDF8]">{bmkgWeatherDesc}</td>
               </tr>
               <tr>
                 <td className="py-3 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
-                  Suhu Udara
+                  <span className="w-2 h-2 rounded-full bg-[#06B6D4]" />
+                  Curah Hujan (API BMKG)
                 </td>
-                <td className="py-3 font-bold">{sensorData.airTemperature}°C</td>
-                <td className="py-3 text-[#8A9198]">21.5°C</td>
-                <td className="py-3">28.6°C</td>
-                <td className="py-3 text-[#8A9198]">33.8°C</td>
-                <td className="py-3 text-[#38BDF8]">Ambien Standar</td>
+                <td className="py-3 font-bold text-[#38BDF8]">{bmkgRainfall} mm</td>
+                <td className="py-3 text-[#8A9198]">0.0 mm</td>
+                <td className="py-3">1.2 mm</td>
+                <td className="py-3 text-[#8A9198]">25.0 mm</td>
+                <td className="py-3 text-[#22C55E]">{bmkgRainfall > 0 ? 'Presipitasi Aktif' : 'Cerah / Kering'}</td>
               </tr>
               <tr>
                 <td className="py-3 flex items-center gap-2">

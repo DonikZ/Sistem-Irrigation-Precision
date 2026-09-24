@@ -262,6 +262,13 @@ export function AppProvider({ children }) {
         locationName: currentSettings.bmkgLocationName
       });
       setWeather(data);
+      if (data?.current) {
+        setSensorData(prev => ({
+          ...prev,
+          airTemperature: typeof data.current.temperature === 'number' ? data.current.temperature : prev.airTemperature,
+          rainfall: typeof data.current.rainfall === 'number' ? data.current.rainfall : prev.rainfall
+        }));
+      }
       if (data?.current?.rainfall > 2) {
         addNotification(`Prakiraan Cuaca: Terdeteksi potensi hujan (${data.current.rainfall} mm).`, 'info', 'Kondisi Cuaca');
       }
@@ -529,12 +536,15 @@ export function AppProvider({ children }) {
         const tempJitter = (Math.random() - 0.5) * 0.2;
         const humJitter = (Math.random() - 0.5) * 0.4;
 
+        const bmkgTemp = weather?.current?.temperature ?? prev.airTemperature;
+        const bmkgRain = weather?.current?.rainfall ?? prev.rainfall;
+
         const simulated = {
           soilMoisture: Number(nextMoisture.toFixed(1)),
           soilTemperature: Number(Math.max(20, Math.min(36, prev.soilTemperature + tempJitter)).toFixed(1)),
-          airTemperature: Number(Math.max(22, Math.min(38, prev.airTemperature + tempJitter)).toFixed(1)),
+          airTemperature: Number(bmkgTemp.toFixed(1)),
           airHumidity: Number(Math.max(30, Math.min(95, prev.airHumidity + humJitter)).toFixed(1)),
-          rainfall: nextRainfall,
+          rainfall: Number(bmkgRain.toFixed(1)),
           lightIntensity: Math.round(15000 + Math.random() * 4000),
           waterLevel: Number(nextWaterLevel.toFixed(1)),
           pump: irrigationState.isActive,
@@ -556,7 +566,6 @@ export function AppProvider({ children }) {
           const next = [...hist, {
             time: nowStr,
             soilMoisture: simulated.soilMoisture,
-            soilTemperature: simulated.soilTemperature,
             airTemperature: simulated.airTemperature,
             airHumidity: simulated.airHumidity,
             rainfall: simulated.rainfall,

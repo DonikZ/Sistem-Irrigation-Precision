@@ -14,9 +14,9 @@ export default function LiveChart({ data = [], height = 240, title = 'Grafik Tel
 
   const metricConfigs = {
     soilMoisture: { label: 'Kelembapan Tanah (%)', color: '#FF7A00', unit: '%', domain: [0, 100] },
-    soilTemperature: { label: 'Suhu Tanah (°C)', color: '#FF9A3D', unit: '°C', domain: [15, 45] },
-    airTemperature: { label: 'Suhu Udara (°C)', color: '#F59E0B', unit: '°C', domain: [15, 45] },
+    airTemperature: { label: 'Suhu Udara BMKG (°C)', color: '#F59E0B', unit: '°C', domain: [15, 45] },
     airHumidity: { label: 'Kelembapan Udara (%)', color: '#38BDF8', unit: '%', domain: [20, 100] },
+    rainfall: { label: 'Curah Hujan BMKG (mm)', color: '#06B6D4', unit: 'mm', domain: [0, 40] },
     waterLevel: { label: 'Level Waterbank (%)', color: '#0EA5E9', unit: '%', domain: [0, 100] },
   };
 

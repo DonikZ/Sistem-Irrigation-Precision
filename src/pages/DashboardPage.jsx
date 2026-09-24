@@ -183,49 +183,40 @@ export default function DashboardPage() {
           description="Kapasitif Analog ADC"
         />
 
-        {/* Soil Temperature */}
+        {/* Air Humidity (replacing Suhu Tanah) */}
         <SensorCard
-          title="Suhu Tanah"
-          value={sensorData.soilTemperature || 0}
-          unit="°C"
-          icon={Thermometer}
-          status={!sensorData.timestamp ? 'normal' : sensorData.soilTemperature > 34 ? 'warning' : 'optimal'}
-          statusLabel={!sensorData.timestamp ? 'Standby (0°C)' : sensorData.soilTemperature > 34 ? 'Tinggi' : 'Normal'}
-          min={!sensorData.timestamp ? undefined : 0}
-          avg={!sensorData.timestamp ? undefined : (sensorData.soilTemperature || 0)}
-          max={!sensorData.timestamp ? undefined : (sensorData.soilTemperature || 0)}
-          accentColor="#FF9A3D"
-          description="Probe DS18B20"
+          title="Kelembapan Udara"
+          value={sensorData.airHumidity || 0}
+          unit="%"
+          icon={Wind}
+          status={!sensorData.timestamp ? 'normal' : sensorData.airHumidity < 50 ? 'warning' : 'optimal'}
+          statusLabel={!sensorData.timestamp ? 'Standby (0%)' : `${sensorData.airHumidity}% RH`}
+          accentColor="#38BDF8"
+          description="Relatif Humidity (RH)"
         />
 
-        {/* Air Temperature & Humidity */}
+        {/* Air Temperature (BMKG API) */}
         <SensorCard
           title="Suhu Udara"
-          value={sensorData.airTemperature || 0}
+          value={weather?.current?.temperature !== undefined ? Number(weather.current.temperature) : (sensorData.airTemperature || 0)}
           unit="°C"
           icon={Sun}
-          status={!sensorData.timestamp ? 'normal' : sensorData.airTemperature > 33 ? 'warning' : 'normal'}
-          statusLabel={!sensorData.timestamp ? 'Standby (0% RH)' : `${sensorData.airHumidity}% RH`}
-          min={!sensorData.timestamp ? undefined : 0}
-          avg={!sensorData.timestamp ? undefined : (sensorData.airTemperature || 0)}
-          max={!sensorData.timestamp ? undefined : (sensorData.airTemperature || 0)}
+          status={weatherLoading ? 'normal' : (weather?.current?.temperature || sensorData.airTemperature) > 33 ? 'warning' : 'optimal'}
+          statusLabel={weatherLoading ? 'Sinkronisasi...' : 'API BMKG'}
           accentColor="#F59E0B"
-          description="Sensor DHT22"
+          description={weather?.location ? `BMKG: ${weather.location}` : 'API BMKG'}
         />
 
-        {/* Rainfall / Curah Hujan */}
+        {/* Rainfall / Curah Hujan (BMKG API) */}
         <SensorCard
-          title="Curah Hujan Aktif"
-          value={sensorData.rainfall || 0}
+          title="Curah Hujan"
+          value={weather?.current?.rainfall !== undefined ? Number(weather.current.rainfall) : (sensorData.rainfall || 0)}
           unit="mm"
           icon={CloudRain}
-          status={sensorData.rainfall > 0 ? 'optimal' : 'normal'}
-          statusLabel={!sensorData.timestamp ? 'Standby (0 mm)' : sensorData.rainfall > 0 ? 'Hujan' : 'Kering'}
-          min={!sensorData.timestamp ? undefined : 0}
-          avg={!sensorData.timestamp ? undefined : 0}
-          max={!sensorData.timestamp ? undefined : (sensorData.rainfall || 0)}
+          status={(weather?.current?.rainfall || sensorData.rainfall) > 0 ? 'optimal' : 'normal'}
+          statusLabel={weatherLoading ? 'Sinkronisasi...' : (weather?.current?.rainfall || sensorData.rainfall) > 0 ? 'Hujan BMKG' : 'Cerah (0 mm)'}
           accentColor="#38BDF8"
-          description="Tipping Bucket Rain Gauge"
+          description={weather?.current?.weatherDesc ? `BMKG: ${weather.current.weatherDesc}` : 'API BMKG'}
         />
       </div>
 
